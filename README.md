@@ -110,10 +110,3 @@ This project is licensed under the MIT License.
 
 Developed by **\M Hussnain Nawaz**
 
-```
-
----
-
-Agar tum chaho to main **mongo-express** ka optional config is README me add karke tumhare `dockercomposefile.yml` bhi update kar sakta hoon taake koi bhi clone karke turant browser me database dekh sake.  
-Kya tum chahte ho ke main woh bhi kar doon?
-```
