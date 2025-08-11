@@ -3,91 +3,94 @@ const app = express();
 const mongoose = require("mongoose");
 const path = require("path");
 const Chat = require("./models/chat.js");
-const methOverride = require("method-override")
+const methOverride = require("method-override");
 
 app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")))
+app.use(express.static(path.join(__dirname, "public")));
 app.set("view engine", "ejs");
-app.use(express.urlencoded({ extended: true }))
-app.use(methOverride("_method"))
+app.use(express.urlencoded({ extended: true }));
+app.use(methOverride("_method"));
 
-main().then(() => {
-    console.log("Connection successful");
-}).catch((err) => {
-    console.log(err);
-});
+// MongoDB connection (Docker version)
+main()
+  .then(() => {
+    console.log("✅ MongoDB connection successful");
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+  });
 
 async function main() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/whatsapp', {
-
-    });
+  // Docker Compose me mongo container ka naam "mongo" hota hai
+  await mongoose.connect("mongodb://mongo:27017/whatsapp");
 }
 
 const port = 8080;
 
+// Root route → redirect to chats page
 app.get("/", (req, res) => {
-    res.send("Root is working");
+  res.redirect("/chats");
 });
 
-//index routes
+// Index route
 app.get("/chats", async (req, res) => {
-    let chats = await Chat.find();
+  let chats = await Chat.find();
+  res.render("index.ejs", { chats });
+});
 
-    res.render("index.ejs", { chats })
-})
-//New routes
+// New chat form
 app.get("/chats/new", (req, res) => {
+  res.render("new.ejs");
+});
 
-    res.render("new.ejs")
-})
-//create post
-app.post("/chats", (req, res) => {
-    let { from, to, msg } = req.body;
+// Create new chat
+app.post("/chats", async (req, res) => {
+  let { from, to, msg } = req.body;
+  let newChat = new Chat({
+    from,
+    to,
+    msg,
+    created_at: new Date(),
+  });
+  try {
+    await newChat.save();
+    console.log("💾 Chat saved successfully");
+    res.redirect("/chats");
+  } catch (err) {
+    console.error("❌ Error saving chat:", err);
+    res.redirect("/chats");
+  }
+});
 
-    let newChat = new Chat(
-        {
-            from: from,
-            to: to,
-            msg: msg,
-            created_at: new Date,
-        }
-    );
-    newChat.save()
-        .then(res => {
-            console.log("Save data")
-        })
-        .catch(err => {
-            console.log(err)
-
-        })
-    res.redirect("/chats")
-})
-
-//Edit route
+// Edit form
 app.get("/chats/:id/edit", async (req, res) => {
-    let { id } = req.params;
-    let chat = await Chat.findById(id);
-    res.render("edit.ejs", { chat })
-})
-//update route
-app.put("/chats/:id", async (req, res) => {
-    let { id } = req.params;
-    let { msg } = req.body;
-    let updatechat = await Chat.findByIdAndUpdate(
-        id,
-        { msg: msg }, { runValidators: true, new: true })
-    console.log(updatechat);
-    res.redirect("/chats")
-})
+  let { id } = req.params;
+  let chat = await Chat.findById(id);
+  res.render("edit.ejs", { chat });
+});
 
-// Delete route
+// Update chat
+app.put("/chats/:id", async (req, res) => {
+  let { id } = req.params;
+  let { msg } = req.body;
+  let updatechat = await Chat.findByIdAndUpdate(
+    id,
+    { msg },
+    { runValidators: true, new: true }
+  );
+  console.log("✏️ Chat updated:", updatechat);
+  res.redirect("/chats");
+});
+
+// Delete chat
 app.delete("/chats/:id", async (req, res) => {
-    let { id } = req.params;
-    let deletedchat = await Chat.findOneAndDelete(id)
-    consolo.log(deletedchat)
-    res.redirect("/chats")
-})
+  let { id } = req.params;
+  let deletedchat = await Chat.findByIdAndDelete(id);
+  console.log("🗑️ Chat deleted:", deletedchat);
+  res.redirect("/chats");
+});
 
 app.listen(port, () => {
-    console.log(`Server is connected with port ${port}`);
+  console.log(`🚀 Server is running on port ${port}`);
 });
+
